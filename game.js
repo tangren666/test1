@@ -234,6 +234,8 @@ class Game {
         this.platforms = [];
         this.enemies = [];
         this.keys = {};
+        this.currentLevel = 1;
+        this.maxLevel = 5;
         this.setupEventListeners();
         this.setupLevel();
     }
@@ -241,17 +243,25 @@ class Game {
     setupLevel() {
         // 创建平台
         this.platforms = [
-            new Platform(0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40),  // 地面
-            new Platform(300, 400, 200, 20),
-            new Platform(100, 300, 200, 20),
-            new Platform(500, 200, 200, 20)
+            new Platform(0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40)  // 地面
         ];
 
-        // 创建敌人
-        this.enemies = [
-            new Enemy(400, WINDOW_HEIGHT - 70),
-            new Enemy(200, WINDOW_HEIGHT - 70)
-        ];
+        // 根据关卡随机生成平台
+        const platformCount = 3 + Math.floor(Math.random() * 3); // 3-5个平台
+        for (let i = 0; i < platformCount; i++) {
+            const x = 100 + Math.random() * (WINDOW_WIDTH - 300);
+            const y = 150 + Math.random() * (WINDOW_HEIGHT - 250);
+            this.platforms.push(new Platform(x, y, 200, 20));
+        }
+
+        // 根据关卡数创建敌人
+        this.enemies = [];
+        const enemyCount = this.currentLevel + 1; // 第n关有n+1个敌人
+        for (let i = 0; i < enemyCount; i++) {
+            const x = 200 + Math.random() * (WINDOW_WIDTH - 400);
+            const y = WINDOW_HEIGHT - 70;
+            this.enemies.push(new Enemy(x, y));
+        }
     }
 
     setupEventListeners() {
@@ -308,6 +318,11 @@ class Game {
                     // 从上方踩到敌人
                     this.enemies.splice(index, 1);
                     this.player.velocityY = -10; // 反弹
+                    
+                    // 检查是否消灭所有敌人
+                    if (this.enemies.length === 0) {
+                        this.levelComplete();
+                    }
                 } else {
                     // 游戏结束
                     this.gameOver();
@@ -335,14 +350,39 @@ class Game {
     }
 
     gameOver() {
-        alert('游戏结束！');
-        this.setupLevel(); // 重置关卡
+        alert('游戏结束！重新开始第' + this.currentLevel + '关');
+        this.setupLevel(); // 重置当前关卡
         // 重置玩家位置和状态
         this.player.x = 100;
         this.player.y = WINDOW_HEIGHT - 100;
         this.player.velocityX = 0;
         this.player.velocityY = 0;
         this.player.jumping = false;
+    }
+
+    levelComplete() {
+        if (this.currentLevel < this.maxLevel) {
+            if (confirm(`恭喜通过第${this.currentLevel}关！是否继续挑战第${this.currentLevel + 1}关？`)) {
+                this.currentLevel++;
+                this.setupLevel();
+                // 重置玩家位置
+                this.player.x = 100;
+                this.player.y = WINDOW_HEIGHT - 100;
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+                this.player.jumping = false;
+            }
+        } else {
+            alert('恭喜你通关了！');
+            this.currentLevel = 1;
+            this.setupLevel();
+            // 重置玩家位置
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
     }
 
     gameLoop() {
