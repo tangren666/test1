@@ -27,7 +27,7 @@ class Player extends GameObject {
         this.velocityX = 0;
         this.jumping = false;
         this.crouching = false;
-        this.speed = 5;
+        this.speed = 3.5; // 原速度5减少30%
         this.gravity = 0.8;
         this.jumpForce = -15;
         
@@ -149,6 +149,32 @@ class Player extends GameObject {
     }
 }
 
+// 宝箱类
+class Treasure extends GameObject {
+    constructor() {
+        // 随机位置生成宝箱
+        const x = Math.random() * (WINDOW_WIDTH - 30);
+        const y = Math.random() * (WINDOW_HEIGHT - 30);
+        super(x, y, 30, 30, '#FFD700');
+        
+        // 加载宝箱图片
+        this.image = new Image();
+        this.image.src = window.location.href.replace(/\/[^\/]*$/, '') + '/treasure.jpg';
+    }
+
+    draw(ctx) {
+        if (this.image.complete) {
+            try {
+                ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+            } catch (error) {
+                super.draw(ctx);
+            }
+        } else {
+            super.draw(ctx);
+        }
+    }
+}
+
 // 平台类
 class Platform extends GameObject {
     constructor(x, y, width, height) {
@@ -161,7 +187,7 @@ class Enemy extends GameObject {
     constructor(x, y, imageNumber = 1) {
         super(x, y, 30, 30, '#FF0000');
         this.direction = 1;
-        this.speed = 2;
+        this.speed = 1.4; // 原速度2减少30%
         this.velocityY = 0;
         this.gravity = 0.8;
         
@@ -365,7 +391,7 @@ class Game {
 
         // 开始按钮事件
         const startButton = document.getElementById('startButton');
-        startButton.addEventListener('click', () => this.startGame());
+        startButton.addEventListener('click', this.startGame.bind(this));
     }
 
     startGame() {
@@ -445,8 +471,295 @@ class Game {
 
     gameOver() {
         if (confirm(`第${this.currentLevel}关挑战失败！是否重新挑战？`)) {
-            // 重置当前关卡，保持布局不变
-            this.enemies = [...this.levelData[this.currentLevel].enemies];
+            // 重置当前关卡，使用深拷贝确保敌人完全重置到初始状态
+            this.enemies = this.levelData[this.currentLevel].enemies.map(enemy => {
+                return new Enemy(enemy.x, enemy.y, enemy.type);
+            });
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        } else {
+            // 返回第一关
+            this.currentLevel = 1;
+            this.levelData = {}; // 清空关卡数据
+            this.setupLevel();
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    levelComplete() {
+        if (this.currentLevel < this.maxLevel) {
+            if (confirm(`恭喜通过第${this.currentLevel}关！是否继续挑战第${this.currentLevel + 1}关？`)) {
+                this.currentLevel++;
+                this.setupLevel();
+                // 重置玩家位置
+                this.player.x = 100;
+                this.player.y = WINDOW_HEIGHT - 100;
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+                this.player.jumping = false;
+            }
+        } else {
+            alert('恭喜你通关了！');
+            this.currentLevel = 1;
+            this.setupLevel();
+            // 重置玩家位置
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    gameLoop() {
+        try {
+            this.update();
+            this.draw();
+        } catch (error) {
+            console.error('游戏循环出错:', error);
+        }
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+// 启动游戏
+let game;
+window.onload = () => {
+    game = new Game();
+};
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.player = new Player();
+        this.platforms = [];
+        this.enemies = [];
+        this.keys = {};
+        this.currentLevel = 1;
+        this.maxLevel = 5;
+        this.levelData = {}; // 存储每个关卡的布局数据
+        this.setupEventListeners();
+        this.setupLevel();
+    }
+
+    setupLevel() {
+        // 如果当前关卡的数据已存在，则使用已存储的数据
+        if (this.levelData[this.currentLevel]) {
+            this.platforms = this.levelData[this.currentLevel].platforms;
+            this.enemies = this.levelData[this.currentLevel].enemies;
+            return;
+        }
+
+        // 预设每个关卡的平台布局
+        const levelPlatforms = {
+            1: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 400, 200, 20],
+                [400, 300, 200, 20],
+                [200, 200, 200, 20]
+            ],
+            2: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 150, 20],
+                [350, 350, 150, 20],
+                [600, 250, 150, 20],
+                [300, 150, 150, 20]
+            ],
+            3: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 120, 20],
+                [250, 400, 120, 20],
+                [450, 350, 120, 20],
+                [650, 300, 120, 20],
+                [450, 200, 120, 20]
+            ],
+            4: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 100, 20],
+                [300, 400, 100, 20],
+                [500, 350, 100, 20],
+                [300, 250, 100, 20],
+                [100, 150, 100, 20],
+                [500, 150, 100, 20]
+            ],
+            5: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 80, 20],
+                [200, 400, 80, 20],
+                [350, 350, 80, 20],
+                [500, 300, 80, 20],
+                [650, 250, 80, 20],
+                [500, 150, 80, 20],
+                [350, 200, 80, 20]
+            ]
+        };
+
+        // 预设每个关卡的敌人位置
+        const levelEnemies = {
+            1: [
+                [300, WINDOW_HEIGHT - 70, 1],
+                [500, WINDOW_HEIGHT - 70, 1]
+            ],
+            2: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 1],
+                [600, WINDOW_HEIGHT - 70, 2]
+            ],
+            3: [
+                [150, WINDOW_HEIGHT - 70, 1],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 280, 1]
+            ],
+            4: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 2],
+                [600, WINDOW_HEIGHT - 70, 2],
+                [300, 230, 1],
+                [500, 130, 2]
+            ],
+            5: [
+                [150, WINDOW_HEIGHT - 70, 2],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 230, 1],
+                [450, 180, 2],
+                [250, 380, 1]
+            ]
+        };
+
+        // 创建当前关卡的平台
+        this.platforms = [];
+        levelPlatforms[this.currentLevel].forEach(([x, y, width, height]) => {
+            this.platforms.push(new Platform(x, y, width, height));
+        });
+
+        // 创建当前关卡的敌人
+        this.enemies = [];
+        levelEnemies[this.currentLevel].forEach(([x, y, type]) => {
+            this.enemies.push(new Enemy(x, y, type));
+        });
+
+        // 存储当前关卡的布局数据
+        this.levelData[this.currentLevel] = {
+            platforms: this.platforms,
+            enemies: [...this.enemies]
+        };
+    }
+
+    setupEventListeners() {
+        // 键盘控制
+        window.addEventListener('keydown', (e) => this.keys[e.code] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+
+        // 移动端控制
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const jumpBtn = document.getElementById('jumpBtn');
+
+        // 触摸事件
+        leftBtn.addEventListener('touchstart', () => this.keys['ArrowLeft'] = true);
+        leftBtn.addEventListener('touchend', () => this.keys['ArrowLeft'] = false);
+        rightBtn.addEventListener('touchstart', () => this.keys['ArrowRight'] = true);
+        rightBtn.addEventListener('touchend', () => this.keys['ArrowRight'] = false);
+        jumpBtn.addEventListener('touchstart', () => this.player.jump());
+
+        // 开始按钮事件
+        const startButton = document.getElementById('startButton');
+        startButton.addEventListener('click', this.startGame.bind(this));
+    }
+
+    startGame() {
+        // 隐藏开始页面
+        const startScreen = document.getElementById('startScreen');
+        startScreen.style.display = 'none';
+        
+        // 显示游戏画布
+        this.canvas.style.display = 'block';
+        
+        // 重置游戏状态
+        this.currentLevel = 1;
+        this.levelData = {};
+        this.setupLevel();
+        
+        // 重置玩家位置和状态
+        this.player.x = 100;
+        this.player.y = WINDOW_HEIGHT - 100;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        this.player.jumping = false;
+        
+        // 开始游戏循环
+        this.gameLoop();
+    }
+
+    update() {
+        // 更新玩家
+        if (this.keys['ArrowLeft']) this.player.velocityX = -this.player.speed;
+        else if (this.keys['ArrowRight']) this.player.velocityX = this.player.speed;
+        else this.player.velocityX = 0;
+
+        if (this.keys['Space'] || this.keys['ArrowUp']) this.player.jump();
+
+        this.player.update(this.platforms);
+
+        // 更新敌人
+        this.enemies.forEach(enemy => enemy.update(this.platforms));
+
+        // 检测与敌人的碰撞
+        this.enemies.forEach((enemy, index) => {
+            if (this.checkCollision(this.player, enemy)) {
+                if (this.player.velocityY > 0 && this.player.y + this.player.height - this.player.velocityY <= enemy.y) {
+                    // 从上方踩到敌人
+                    this.enemies.splice(index, 1);
+                    this.player.velocityY = -10; // 反弹
+                    
+                    // 检查是否消灭所有敌人
+                    if (this.enemies.length === 0) {
+                        this.levelComplete();
+                    }
+                } else {
+                    // 游戏结束
+                    this.gameOver();
+                }
+            }
+        });
+    }
+
+    checkCollision(obj1, obj2) {
+        return obj1.x < obj2.x + obj2.width &&
+               obj1.x + obj1.width > obj2.x &&
+               obj1.y < obj2.y + obj2.height &&
+               obj1.y + obj1.height > obj2.y;
+    }
+
+    draw() {
+        // 清空画布
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // 绘制游戏对象
+        this.platforms.forEach(platform => platform.draw(this.ctx));
+        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+        this.player.draw(this.ctx);
+    }
+
+    gameOver() {
+        if (confirm(`第${this.currentLevel}关挑战失败！是否重新挑战？`)) {
+            // 重置当前关卡，使用深拷贝确保敌人完全重置到初始状态
+            this.enemies = this.levelData[this.currentLevel].enemies.map(enemy => {
+                return new Enemy(enemy.x, enemy.y, enemy.type);
+            });
             // 重置玩家位置和状态
             this.player.x = 100;
             this.player.y = WINDOW_HEIGHT - 100;
@@ -507,3 +820,907 @@ class Game {
 window.onload = () => {
     new Game();
 };
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.player = new Player();
+        this.platforms = [];
+        this.enemies = [];
+        this.keys = {};
+        this.currentLevel = 1;
+        this.maxLevel = 5;
+        this.levelData = {}; // 存储每个关卡的布局数据
+        this.setupEventListeners();
+        this.setupLevel();
+    }
+
+    setupLevel() {
+        // 如果当前关卡的数据已存在，则使用已存储的数据
+        if (this.levelData[this.currentLevel]) {
+            this.platforms = this.levelData[this.currentLevel].platforms;
+            this.enemies = this.levelData[this.currentLevel].enemies;
+            return;
+        }
+
+        // 预设每个关卡的平台布局
+        const levelPlatforms = {
+            1: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 400, 200, 20],
+                [400, 300, 200, 20],
+                [200, 200, 200, 20]
+            ],
+            2: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 150, 20],
+                [350, 350, 150, 20],
+                [600, 250, 150, 20],
+                [300, 150, 150, 20]
+            ],
+            3: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 120, 20],
+                [250, 400, 120, 20],
+                [450, 350, 120, 20],
+                [650, 300, 120, 20],
+                [450, 200, 120, 20]
+            ],
+            4: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 100, 20],
+                [300, 400, 100, 20],
+                [500, 350, 100, 20],
+                [300, 250, 100, 20],
+                [100, 150, 100, 20],
+                [500, 150, 100, 20]
+            ],
+            5: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 80, 20],
+                [200, 400, 80, 20],
+                [350, 350, 80, 20],
+                [500, 300, 80, 20],
+                [650, 250, 80, 20],
+                [500, 150, 80, 20],
+                [350, 200, 80, 20]
+            ]
+        };
+
+        // 预设每个关卡的敌人位置
+        const levelEnemies = {
+            1: [
+                [300, WINDOW_HEIGHT - 70, 1],
+                [500, WINDOW_HEIGHT - 70, 1]
+            ],
+            2: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 1],
+                [600, WINDOW_HEIGHT - 70, 2]
+            ],
+            3: [
+                [150, WINDOW_HEIGHT - 70, 1],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 280, 1]
+            ],
+            4: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 2],
+                [600, WINDOW_HEIGHT - 70, 2],
+                [300, 230, 1],
+                [500, 130, 2]
+            ],
+            5: [
+                [150, WINDOW_HEIGHT - 70, 2],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 230, 1],
+                [450, 180, 2],
+                [250, 380, 1]
+            ]
+        };
+
+        // 创建当前关卡的平台
+        this.platforms = [];
+        levelPlatforms[this.currentLevel].forEach(([x, y, width, height]) => {
+            this.platforms.push(new Platform(x, y, width, height));
+        });
+
+        // 创建当前关卡的敌人
+        this.enemies = [];
+        levelEnemies[this.currentLevel].forEach(([x, y, type]) => {
+            this.enemies.push(new Enemy(x, y, type));
+        });
+
+        // 存储当前关卡的布局数据
+        this.levelData[this.currentLevel] = {
+            platforms: this.platforms,
+            enemies: [...this.enemies]
+        };
+    }
+
+    setupEventListeners() {
+        // 键盘控制
+        window.addEventListener('keydown', (e) => this.keys[e.code] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+
+        // 移动端控制
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const jumpBtn = document.getElementById('jumpBtn');
+
+        // 触摸事件
+        leftBtn.addEventListener('touchstart', () => this.keys['ArrowLeft'] = true);
+        leftBtn.addEventListener('touchend', () => this.keys['ArrowLeft'] = false);
+        rightBtn.addEventListener('touchstart', () => this.keys['ArrowRight'] = true);
+        rightBtn.addEventListener('touchend', () => this.keys['ArrowRight'] = false);
+        jumpBtn.addEventListener('touchstart', () => this.player.jump());
+
+        // 开始按钮事件
+        const startButton = document.getElementById('startButton');
+        startButton.addEventListener('click', this.startGame.bind(this));
+    }
+
+    startGame() {
+        // 隐藏开始页面
+        const startScreen = document.getElementById('startScreen');
+        startScreen.style.display = 'none';
+        
+        // 显示游戏画布
+        this.canvas.style.display = 'block';
+        
+        // 重置游戏状态
+        this.currentLevel = 1;
+        this.levelData = {};
+        this.setupLevel();
+        
+        // 重置玩家位置和状态
+        this.player.x = 100;
+        this.player.y = WINDOW_HEIGHT - 100;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        this.player.jumping = false;
+        
+        // 开始游戏循环
+        this.gameLoop();
+    }
+
+    update() {
+        // 更新玩家
+        if (this.keys['ArrowLeft']) this.player.velocityX = -this.player.speed;
+        else if (this.keys['ArrowRight']) this.player.velocityX = this.player.speed;
+        else this.player.velocityX = 0;
+
+        if (this.keys['Space'] || this.keys['ArrowUp']) this.player.jump();
+
+        this.player.update(this.platforms);
+
+        // 更新敌人
+        this.enemies.forEach(enemy => enemy.update(this.platforms));
+
+        // 检测与敌人的碰撞
+        this.enemies.forEach((enemy, index) => {
+            if (this.checkCollision(this.player, enemy)) {
+                if (this.player.velocityY > 0 && this.player.y + this.player.height - this.player.velocityY <= enemy.y) {
+                    // 从上方踩到敌人
+                    this.enemies.splice(index, 1);
+                    this.player.velocityY = -10; // 反弹
+                    
+                    // 检查是否消灭所有敌人
+                    if (this.enemies.length === 0) {
+                        this.levelComplete();
+                    }
+                } else {
+                    // 游戏结束
+                    this.gameOver();
+                }
+            }
+        });
+    }
+
+    checkCollision(obj1, obj2) {
+        return obj1.x < obj2.x + obj2.width &&
+               obj1.x + obj1.width > obj2.x &&
+               obj1.y < obj2.y + obj2.height &&
+               obj1.y + obj1.height > obj2.y;
+    }
+
+    draw() {
+        // 清空画布
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // 绘制游戏对象
+        this.platforms.forEach(platform => platform.draw(this.ctx));
+        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+        this.player.draw(this.ctx);
+    }
+
+    gameOver() {
+        if (confirm(`第${this.currentLevel}关挑战失败！是否重新挑战？`)) {
+            // 重置当前关卡，使用深拷贝确保敌人完全重置到初始状态
+            this.enemies = this.levelData[this.currentLevel].enemies.map(enemy => {
+                return new Enemy(enemy.x, enemy.y, enemy.type);
+            });
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        } else {
+            // 返回第一关
+            this.currentLevel = 1;
+            this.levelData = {}; // 清空关卡数据
+            this.setupLevel();
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    levelComplete() {
+        if (this.currentLevel < this.maxLevel) {
+            if (confirm(`恭喜通过第${this.currentLevel}关！是否继续挑战第${this.currentLevel + 1}关？`)) {
+                this.currentLevel++;
+                this.setupLevel();
+                // 重置玩家位置
+                this.player.x = 100;
+                this.player.y = WINDOW_HEIGHT - 100;
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+                this.player.jumping = false;
+            }
+        } else {
+            alert('恭喜你通关了！');
+            this.currentLevel = 1;
+            this.setupLevel();
+            // 重置玩家位置
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    gameLoop() {
+        try {
+            this.update();
+            this.draw();
+        } catch (error) {
+            console.error('游戏循环出错:', error);
+        }
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+// 启动游戏
+window.onload = () => {
+    new Game();
+};
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.player = new Player();
+        this.platforms = [];
+        this.enemies = [];
+        this.keys = {};
+        this.currentLevel = 1;
+        this.maxLevel = 5;
+        this.levelData = {}; // 存储每个关卡的布局数据
+        this.setupEventListeners();
+        this.setupLevel();
+    }
+
+    setupLevel() {
+        // 如果当前关卡的数据已存在，则使用已存储的数据
+        if (this.levelData[this.currentLevel]) {
+            this.platforms = this.levelData[this.currentLevel].platforms;
+            this.enemies = this.levelData[this.currentLevel].enemies;
+            return;
+        }
+
+        // 预设每个关卡的平台布局
+        const levelPlatforms = {
+            1: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 400, 200, 20],
+                [400, 300, 200, 20],
+                [200, 200, 200, 20]
+            ],
+            2: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 150, 20],
+                [350, 350, 150, 20],
+                [600, 250, 150, 20],
+                [300, 150, 150, 20]
+            ],
+            3: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 120, 20],
+                [250, 400, 120, 20],
+                [450, 350, 120, 20],
+                [650, 300, 120, 20],
+                [450, 200, 120, 20]
+            ],
+            4: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 100, 20],
+                [300, 400, 100, 20],
+                [500, 350, 100, 20],
+                [300, 250, 100, 20],
+                [100, 150, 100, 20],
+                [500, 150, 100, 20]
+            ],
+            5: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 80, 20],
+                [200, 400, 80, 20],
+                [350, 350, 80, 20],
+                [500, 300, 80, 20],
+                [650, 250, 80, 20],
+                [500, 150, 80, 20],
+                [350, 200, 80, 20]
+            ]
+        };
+
+        // 预设每个关卡的敌人位置
+        const levelEnemies = {
+            1: [
+                [300, WINDOW_HEIGHT - 70, 1],
+                [500, WINDOW_HEIGHT - 70, 1]
+            ],
+            2: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 1],
+                [600, WINDOW_HEIGHT - 70, 2]
+            ],
+            3: [
+                [150, WINDOW_HEIGHT - 70, 1],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 280, 1]
+            ],
+            4: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 2],
+                [600, WINDOW_HEIGHT - 70, 2],
+                [300, 230, 1],
+                [500, 130, 2]
+            ],
+            5: [
+                [150, WINDOW_HEIGHT - 70, 2],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 230, 1],
+                [450, 180, 2],
+                [250, 380, 1]
+            ]
+        };
+
+        // 创建当前关卡的平台
+        this.platforms = [];
+        levelPlatforms[this.currentLevel].forEach(([x, y, width, height]) => {
+            this.platforms.push(new Platform(x, y, width, height));
+        });
+
+        // 创建当前关卡的敌人
+        this.enemies = [];
+        levelEnemies[this.currentLevel].forEach(([x, y, type]) => {
+            this.enemies.push(new Enemy(x, y, type));
+        });
+
+        // 存储当前关卡的布局数据
+        this.levelData[this.currentLevel] = {
+            platforms: this.platforms,
+            enemies: [...this.enemies]
+        };
+    }
+
+    setupEventListeners() {
+        // 键盘控制
+        window.addEventListener('keydown', (e) => this.keys[e.code] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+
+        // 移动端控制
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const jumpBtn = document.getElementById('jumpBtn');
+
+        // 触摸事件
+        leftBtn.addEventListener('touchstart', () => this.keys['ArrowLeft'] = true);
+        leftBtn.addEventListener('touchend', () => this.keys['ArrowLeft'] = false);
+        rightBtn.addEventListener('touchstart', () => this.keys['ArrowRight'] = true);
+        rightBtn.addEventListener('touchend', () => this.keys['ArrowRight'] = false);
+        jumpBtn.addEventListener('touchstart', () => this.player.jump());
+
+        // 开始按钮事件
+        const startButton = document.getElementById('startButton');
+        startButton.addEventListener('click', this.startGame.bind(this));
+    }
+
+    startGame() {
+        // 隐藏开始页面
+        const startScreen = document.getElementById('startScreen');
+        startScreen.style.display = 'none';
+        
+        // 显示游戏画布
+        this.canvas.style.display = 'block';
+        
+        // 重置游戏状态
+        this.currentLevel = 1;
+        this.levelData = {};
+        this.setupLevel();
+        
+        // 重置玩家位置和状态
+        this.player.x = 100;
+        this.player.y = WINDOW_HEIGHT - 100;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        this.player.jumping = false;
+        
+        // 开始游戏循环
+        this.gameLoop();
+    }
+
+    update() {
+        // 更新玩家
+        if (this.keys['ArrowLeft']) this.player.velocityX = -this.player.speed;
+        else if (this.keys['ArrowRight']) this.player.velocityX = this.player.speed;
+        else this.player.velocityX = 0;
+
+        if (this.keys['Space'] || this.keys['ArrowUp']) this.player.jump();
+
+        this.player.update(this.platforms);
+
+        // 更新敌人
+        this.enemies.forEach(enemy => enemy.update(this.platforms));
+
+        // 检测与敌人的碰撞
+        this.enemies.forEach((enemy, index) => {
+            if (this.checkCollision(this.player, enemy)) {
+                if (this.player.velocityY > 0 && this.player.y + this.player.height - this.player.velocityY <= enemy.y) {
+                    // 从上方踩到敌人
+                    this.enemies.splice(index, 1);
+                    this.player.velocityY = -10; // 反弹
+                    
+                    // 检查是否消灭所有敌人
+                    if (this.enemies.length === 0) {
+                        this.levelComplete();
+                    }
+                } else {
+                    // 游戏结束
+                    this.gameOver();
+                }
+            }
+        });
+    }
+
+    checkCollision(obj1, obj2) {
+        return obj1.x < obj2.x + obj2.width &&
+               obj1.x + obj1.width > obj2.x &&
+               obj1.y < obj2.y + obj2.height &&
+               obj1.y + obj1.height > obj2.y;
+    }
+
+    draw() {
+        // 清空画布
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // 绘制游戏对象
+        this.platforms.forEach(platform => platform.draw(this.ctx));
+        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+        this.player.draw(this.ctx);
+    }
+
+    gameOver() {
+        if (confirm(`第${this.currentLevel}关挑战失败！是否重新挑战？`)) {
+            // 重置当前关卡，使用深拷贝确保敌人完全重置到初始状态
+            this.enemies = this.levelData[this.currentLevel].enemies.map(enemy => {
+                return new Enemy(enemy.x, enemy.y, enemy.type);
+            });
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        } else {
+            // 返回第一关
+            this.currentLevel = 1;
+            this.levelData = {}; // 清空关卡数据
+            this.setupLevel();
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    levelComplete() {
+        if (this.currentLevel < this.maxLevel) {
+            if (confirm(`恭喜通过第${this.currentLevel}关！是否继续挑战第${this.currentLevel + 1}关？`)) {
+                this.currentLevel++;
+                this.setupLevel();
+                // 重置玩家位置
+                this.player.x = 100;
+                this.player.y = WINDOW_HEIGHT - 100;
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+                this.player.jumping = false;
+            }
+        } else {
+            alert('恭喜你通关了！');
+            this.currentLevel = 1;
+            this.setupLevel();
+            // 重置玩家位置
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    gameLoop() {
+        try {
+            this.update();
+            this.draw();
+        } catch (error) {
+            console.error('游戏循环出错:', error);
+        }
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+// 启动游戏
+window.onload = () => {
+    new Game();
+};
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.player = new Player();
+        this.platforms = [];
+        this.enemies = [];
+        this.keys = {};
+        this.currentLevel = 1;
+        this.maxLevel = 5;
+        this.levelData = {}; // 存储每个关卡的布局数据
+        this.setupEventListeners();
+        this.setupLevel();
+    }
+
+    setupLevel() {
+        // 如果当前关卡的数据已存在，则使用已存储的数据
+        if (this.levelData[this.currentLevel]) {
+            this.platforms = this.levelData[this.currentLevel].platforms;
+            this.enemies = this.levelData[this.currentLevel].enemies;
+            return;
+        }
+
+        // 预设每个关卡的平台布局
+        const levelPlatforms = {
+            1: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 400, 200, 20],
+                [400, 300, 200, 20],
+                [200, 200, 200, 20]
+            ],
+            2: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 150, 20],
+                [350, 350, 150, 20],
+                [600, 250, 150, 20],
+                [300, 150, 150, 20]
+            ],
+            3: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 120, 20],
+                [250, 400, 120, 20],
+                [450, 350, 120, 20],
+                [650, 300, 120, 20],
+                [450, 200, 120, 20]
+            ],
+            4: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 100, 20],
+                [300, 400, 100, 20],
+                [500, 350, 100, 20],
+                [300, 250, 100, 20],
+                [100, 150, 100, 20],
+                [500, 150, 100, 20]
+            ],
+            5: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 80, 20],
+                [200, 400, 80, 20],
+                [350, 350, 80, 20],
+                [500, 300, 80, 20],
+                [650, 250, 80, 20],
+                [500, 150, 80, 20],
+                [350, 200, 80, 20]
+            ]
+        };
+
+        // 预设每个关卡的敌人位置
+        const levelEnemies = {
+            1: [
+                [300, WINDOW_HEIGHT - 70, 1],
+                [500, WINDOW_HEIGHT - 70, 1]
+            ],
+            2: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 1],
+                [600, WINDOW_HEIGHT - 70, 2]
+            ],
+            3: [
+                [150, WINDOW_HEIGHT - 70, 1],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 280, 1]
+            ],
+            4: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 2],
+                [600, WINDOW_HEIGHT - 70, 2],
+                [300, 230, 1],
+                [500, 130, 2]
+            ],
+            5: [
+                [150, WINDOW_HEIGHT - 70, 2],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 230, 1],
+                [450, 180, 2],
+                [250, 380, 1]
+            ]
+        };
+
+        // 创建当前关卡的平台
+        this.platforms = [];
+        levelPlatforms[this.currentLevel].forEach(([x, y, width, height]) => {
+            this.platforms.push(new Platform(x, y, width, height));
+        });
+
+        // 创建当前关卡的敌人
+        this.enemies = [];
+        levelEnemies[this.currentLevel].forEach(([x, y, type]) => {
+            this.enemies.push(new Enemy(x, y, type));
+        });
+
+        // 存储当前关卡的布局数据
+        this.levelData[this.currentLevel] = {
+            platforms: this.platforms,
+            enemies: [...this.enemies]
+        };
+    }
+
+    setupEventListeners() {
+        // 键盘控制
+        window.addEventListener('keydown', (e) => this.keys[e.code] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+
+        // 移动端控制
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const jumpBtn = document.getElementById('jumpBtn');
+
+        // 触摸事件
+        leftBtn.addEventListener('touchstart', () => this.keys['ArrowLeft'] = true);
+        leftBtn.addEventListener('touchend', () => this.keys['ArrowLeft'] = false);
+        rightBtn.addEventListener('touchstart', () => this.keys['ArrowRight'] = true);
+        rightBtn.addEventListener('touchend', () => this.keys['ArrowRight'] = false);
+        jumpBtn.addEventListener('touchstart', () => this.player.jump());
+
+        // 开始按钮事件
+        const startButton = document.getElementById('startButton');
+        startButton.addEventListener('click', this.startGame.bind(this));
+    }
+
+    startGame() {
+        // 隐藏开始页面
+        const startScreen = document.getElementById('startScreen');
+        startScreen.style.display = 'none';
+        
+        // 显示游戏画布
+        this.canvas.style.display = 'block';
+        
+        // 重置游戏状态
+        this.currentLevel = 1;
+        this.levelData = {};
+        this.setupLevel();
+        
+        // 重置玩家位置和状态
+        this.player.x = 100;
+        this.player.y = WINDOW_HEIGHT - 100;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        this.player.jumping = false;
+        
+        // 开始游戏循环
+        this.gameLoop();
+    }
+
+    update() {
+        // 更新玩家
+        if (this.keys['ArrowLeft']) this.player.velocityX = -this.player.speed;
+        else if (this.keys['ArrowRight']) this.player.velocityX = this.player.speed;
+        else this.player.velocityX = 0;
+
+        if (this.keys['Space'] || this.keys['ArrowUp']) this.player.jump();
+
+        this.player.update(this.platforms);
+
+        // 更新敌人
+        this.enemies.forEach(enemy => enemy.update(this.platforms));
+
+        // 检测与敌人的碰撞
+        this.enemies.forEach((enemy, index) => {
+            if (this.checkCollision(this.player, enemy)) {
+                if (this.player.velocityY > 0 && this.player.y + this.player.height - this.player.velocityY <= enemy.y) {
+                    // 从上方踩到敌人
+                    this.enemies.splice(index, 1);
+                    this.player.velocityY = -10; // 反弹
+                    
+                    // 检查是否消灭所有敌人
+                    if (this.enemies.length === 0) {
+                        this.levelComplete();
+                    }
+                } else {
+                    // 游戏结束
+                    this.gameOver();
+                }
+            }
+        });
+    }
+
+    checkCollision(obj1, obj2) {
+        return obj1.x < obj2.x + obj2.width &&
+               obj1.x + obj1.width > obj2.x &&
+               obj1.y < obj2.y + obj2.height &&
+               obj1.y + obj1.height > obj2.y;
+    }
+
+    draw() {
+        // 清空画布
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // 绘制游戏对象
+        this.platforms.forEach(platform => platform.draw(this.ctx));
+        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+        this.player.draw(this.ctx);
+    }
+
+    gameOver() {
+        if (confirm(`第${this.currentLevel}关挑战失败！是否重新挑战？`)) {
+            // 重置当前关卡，使用深拷贝确保敌人完全重置到初始状态
+            this.enemies = this.levelData[this.currentLevel].enemies.map(enemy => {
+                return new Enemy(enemy.x, enemy.y, enemy.type);
+            });
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        } else {
+            // 返回第一关
+            this.currentLevel = 1;
+            this.levelData = {}; // 清空关卡数据
+            this.setupLevel();
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    levelComplete() {
+        if (this.currentLevel < this.maxLevel) {
+            if (confirm(`恭喜通过第${this.currentLevel}关！是否继续挑战第${this.currentLevel + 1}关？`)) {
+                this.currentLevel++;
+                this.setupLevel();
+                // 重置玩家位置
+                this.player.x = 100;
+                this.player.y = WINDOW_HEIGHT - 100;
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+                this.player.jumping = false;
+            }
+        } else {
+            alert('恭喜你通关了！');
+            this.currentLevel = 1;
+            this.setupLevel();
+            // 重置玩家位置
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
+    }
+
+    gameLoop() {
+        try {
+            this.update();
+            this.draw();
+        } catch (error) {
+            console.error('游戏循环出错:', error);
+        }
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+// 启动游戏
+window.onload = () => {
+    new Game();
+};
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.player = new Player();
+        this.platforms = [];
+        this.enemies = [];
+        this.keys = {};
+        this.currentLevel = 1;
+        this.maxLevel = 5;
+        this.levelData = {}; // 存储每个关卡的布局数据
+        this.setupEventListeners();
+        this.setupLevel();
+    }
+
+    setupLevel() {
+        // 如果当前关卡的数据已存在，则使用已存储的数据
+        if (this.levelData[this.currentLevel]) {
+            this.platforms = this.levelData[this.currentLevel].platforms;
+            this.enemies = this.levelData[this.currentLevel].enemies;
+            return;
+        }
+
+        // 预设每个关卡的平台布局
+        const levelPlatforms = {
+            1: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 400, 200, 20],
+                [400, 300, 200, 20],
+                [200, 200, 200, 20]
+            ],
+            2: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 150, 20],
+                [350, 350, 150, 20],
+                [600, 250, 150, 20],
+                [300, 150, 150, 20]
+            ],
+            3: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 120, 20],
+                [250, 400, 120, 20],
+                [450, 350, 120, 20],
+                [650, 300, 120, 20],
+                [450, 200, 120, 20]
+            ],
+            4: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 100, 20],
+                [300, 400, 100, 20],
+                [500
