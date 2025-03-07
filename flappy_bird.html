@@ -89,6 +89,15 @@
         window.onload = function() {
             const canvas = document.getElementById('gameCanvas');
             const game = new FlappyBirdGame(canvas);
+            const startButton = document.getElementById('startButton');
+            
+            // 添加开始按钮点击事件
+            startButton.addEventListener('click', function() {
+                document.getElementById('startScreen').style.display = 'none';
+                canvas.style.display = 'block';
+                game.gameState = 'playing';
+                game.gameLoop(performance.now());
+            });
             
             // 调整画布大小以适应屏幕
             function resizeCanvas() {

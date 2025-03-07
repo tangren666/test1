@@ -1,6 +1,6 @@
 // 游戏常量
-const CANVAS_WIDTH = 800;
-const CANVAS_HEIGHT = 600;
+const CANVAS_WIDTH = 1792;
+const CANVAS_HEIGHT = 828;
 const BIRD_WIDTH = 40;
 const BIRD_HEIGHT = 30;
 const PIPE_WIDTH = 60;
@@ -159,6 +159,30 @@ class FlappyBirdGame {
             show: false,
             timer: 0
         };
+        this.canvas.addEventListener('click', this.handleClick.bind(this));
+    }
+
+    handleClick() {
+        this.clickCount++;
+        if (this.gameState === 'start') {
+            this.gameState = 'playing';
+            this.gameLoop(performance.now());
+        } else if (this.gameState === 'playing') {
+            this.bird.flap();
+        } else if (this.gameState === 'gameOver') {
+            this.reset();
+            this.gameState = 'start';
+        }
+    }
+
+    reset() {
+        this.bird = new Bird();
+        this.pipes = [];
+        this.score = 0;
+        this.lastPipeSpawn = 0;
+        this.scoreMessage.show = false;
+        this.scoreMessage.timer = 0;
+        this.scoreAnimations = [];
     }
 
     update(deltaTime) {
