@@ -179,7 +179,9 @@ class FlappyBirdGame {
         this.bird = new Bird();
         this.pipes = [];
         this.score = 0;
+        this.clickCount = 0;
         this.lastPipeSpawn = 0;
+        this.lastTime = 0;
         this.scoreMessage.show = false;
         this.scoreMessage.timer = 0;
         this.scoreAnimations = [];
