@@ -81,14 +81,20 @@
         }
         @media (orientation: portrait) {
             #gameCanvas {
-                width: 100%;
-                height: auto;
+                width: 100vw !important;
+                height: auto !important;
+                top: 50% !important;
+                left: 0 !important;
+                transform: translateY(-50%) !important;
             }
         }
         @media (orientation: landscape) {
             #gameCanvas {
-                height: 100%;
-                width: auto;
+                height: 100vh !important;
+                width: auto !important;
+                top: 0 !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
             }
         }
     </style>
@@ -99,46 +105,10 @@
             <h1>Flappy 婧婧</h1>
             <button id="startButton">开始游戏</button>
         </div>
-        <canvas id="gameCanvas" width="1792" height="828" style="display: none;"></canvas>
+        <canvas id="gameCanvas" width="1792" height="828" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none;"></canvas>
     </div>
     <script src="flappy_bird.js"></script>
     <script>
-        window.onload = function() {
-            const canvas = document.getElementById('gameCanvas');
-            const game = new FlappyBirdGame(canvas);
-            const startButton = document.getElementById('startButton');
-            
-            // 添加开始按钮点击事件
-            startButton.addEventListener('click', function() {
-                document.getElementById('startScreen').style.display = 'none';
-                canvas.style.display = 'block';
-                game.gameState = 'playing';
-                game.gameLoop(performance.now());
-            });
-            
-            // 调整画布大小以适应屏幕
-            function resizeCanvas() {
-                const gameAspectRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
-                const screenAspectRatio = window.innerWidth / window.innerHeight;
-                
-                if (window.matchMedia("(orientation: portrait)").matches) {
-                    canvas.style.width = '100vw';
-                    canvas.style.height = (window.innerWidth / gameAspectRatio) + 'px';
-                    canvas.style.top = '50%';
-                    canvas.style.left = '0';
-                    canvas.style.transform = 'translateY(-50%)';
-                } else {
-                    canvas.style.height = '100vh';
-                    canvas.style.width = (window.innerHeight * gameAspectRatio) + 'px';
-                    canvas.style.top = '0';
-                    canvas.style.left = '50%';
-                    canvas.style.transform = 'translateX(-50%)';
-                }
-            }
-            
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas();
-        };
         window.onload = function() {
             const canvas = document.getElementById('gameCanvas');
             const game = new FlappyBirdGame(canvas);
