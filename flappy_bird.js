@@ -155,65 +155,10 @@ class FlappyBirdGame {
         this.pipeSpawnInterval = 2000;
         this.lastTime = 0;
         this.scoreAnimations = []; // 存储得分动画
-
-        // 绑定开始按钮事件
-        const startButton = document.getElementById('startButton');
-        startButton.addEventListener('click', () => {
-            document.getElementById('startScreen').style.display = 'none';
-            this.canvas.style.display = 'block';
-            this.startGame();
-        });
-
-        this.bindEvents();
-    }
-
-    bindEvents() {
-        // 鼠标点击和触摸事件
-        const handleInput = () => {
-            this.clickCount++; // 增加点击次数
-            if (this.gameState === 'start') {
-                this.startGame();
-            } else if (this.gameState === 'playing') {
-                this.bird.flap();
-            } else if (this.gameState === 'gameOver') {
-                this.resetGame();
-            }
+        this.scoreMessage = {
+            show: false,
+            timer: 0
         };
-
-        this.canvas.addEventListener('click', handleInput);
-        this.canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleInput();
-        });
-    }
-
-    resetGame() {
-        this.gameState = 'start';
-        this.score = 0;
-        this.clickCount = 0;
-        this.pipes = [];
-        this.bird = new Bird();
-        this.bird.x = CANVAS_WIDTH / 4;
-        this.bird.y = CANVAS_HEIGHT / 2;
-        this.bird.velocity = 0;
-        this.bird.rotation = 0;
-        this.lastPipeSpawn = 0;
-        this.lastTime = performance.now();
-    }
-
-    startGame() {
-        this.gameState = 'playing';
-        this.score = 0;
-        this.clickCount = 0;
-        this.pipes = [];
-        this.bird = new Bird();
-        this.bird.x = CANVAS_WIDTH / 4;
-        this.bird.y = CANVAS_HEIGHT / 2;
-        this.bird.velocity = 0;
-        this.bird.rotation = 0;
-        this.lastPipeSpawn = 0;
-        this.lastTime = performance.now();
-        requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     }
 
     update(deltaTime) {
@@ -240,6 +185,11 @@ class FlappyBirdGame {
             if (!pipe.passed && pipe.x + pipe.width < this.bird.x) {
                 pipe.passed = true;
                 this.score++;
+                // 当分数大于3时显示提示
+                if (this.score > 3 && !this.scoreMessage.show) {
+                    this.scoreMessage.show = true;
+                    this.scoreMessage.timer = 5000; // 5秒
+                }
                 // 添加得分动画
                 this.scoreAnimations.push({
                     x: pipe.x + pipe.width,
@@ -251,6 +201,14 @@ class FlappyBirdGame {
 
             if (pipe.x + pipe.width < 0) {
                 this.pipes.splice(i, 1);
+            }
+        }
+
+        // 更新提示计时器
+        if (this.scoreMessage.show) {
+            this.scoreMessage.timer -= deltaTime;
+            if (this.scoreMessage.timer <= 0) {
+                this.scoreMessage.show = false;
             }
         }
 
@@ -286,6 +244,16 @@ class FlappyBirdGame {
             this.ctx.fillText('+1', anim.x, anim.y);
             this.ctx.restore();
         });
+
+        // 绘制得分提示
+        if (this.scoreMessage.show) {
+            this.ctx.save();
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.font = 'bold 36px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('太棒了，小婧婧', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 100);
+            this.ctx.restore();
+        }
 
         this.ctx.fillStyle = '#000';
         this.ctx.font = '24px Arial';

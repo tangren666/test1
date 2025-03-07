@@ -7,56 +7,103 @@
     <style>
         body {
             margin: 0;
+            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            height: 100vh;
+            width: 100vw;
             background-color: #87CEEB;
             touch-action: manipulation;
             position: relative;
+            overflow: hidden;
         }
         #gameCanvas {
             border: 2px solid #000;
             background-color: #fff;
-            max-width: 100%;
-            max-height: 100vh;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
-        @media (max-width: 800px) {
-            #gameCanvas {
-                width: 100%;
-                height: auto;
-                max-height: 90vh;
-                object-fit: contain;
+        #startScreen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #startScreen h1 {
+            color: purple;
+            font-weight: bold;
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        #startButton {
+            padding: 15px 30px;
+            font-size: 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        #startButton:active {
+            transform: scale(0.95);
+        }
+        @media (max-width: 768px) {
+            #startScreen h1 {
+                font-size: 36px;
             }
-            body {
-                padding: 10px;
-                box-sizing: border-box;
+            #startButton {
+                padding: 12px 24px;
+                font-size: 20px;
             }
         }
-        
-        /* 针对iPhone 11 Pro Max等设备的优化 */
-        @media only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3),
-               only screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) {
+        @media (orientation: landscape) and (max-height: 500px) {
             #gameCanvas {
-                width: 100%;
-                height: auto;
-                max-height: 85vh;
+                height: 100vh;
+                width: auto;
             }
         }
     </style>
 </head>
 <body>
-    <div id="startScreen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 1;">
-        <h1 style="color: purple; font-weight: bold; font-size: 48px; margin-bottom: 30px;">Flappy 婧婧</h1>
-        <button id="startButton" style="padding: 15px 30px; font-size: 24px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">开始游戏</button>
+    <div id="startScreen">
+        <h1>Flappy 婧婧</h1>
+        <button id="startButton">开始游戏</button>
     </div>
     <canvas id="gameCanvas" width="800" height="600" style="display: none;"></canvas>
     <script src="flappy_bird.js"></script>
     <script>
-        // 初始化游戏
         window.onload = function() {
             const canvas = document.getElementById('gameCanvas');
             const game = new FlappyBirdGame(canvas);
+            
+            // 调整画布大小以适应屏幕
+            function resizeCanvas() {
+                const aspectRatio = 800/600;
+                if (window.innerWidth / window.innerHeight > aspectRatio) {
+                    canvas.style.height = '100vh';
+                    canvas.style.width = 'auto';
+                } else {
+                    canvas.style.width = '100vw';
+                    canvas.style.height = 'auto';
+                }
+            }
+            
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
         };
     </script>
 </body>
