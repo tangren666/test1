@@ -1,9 +1,9 @@
 // 游戏常量
 const CANVAS_WIDTH = 1792;
 const CANVAS_HEIGHT = 828;
-const BIRD_WIDTH = 40;
-const BIRD_HEIGHT = 30;
-const PIPE_WIDTH = 60;
+const BIRD_WIDTH = 48;
+const BIRD_HEIGHT = 36;
+const PIPE_WIDTH = 72;
 const PIPE_GAP = 200;
 const GRAVITY = 0.25;
 const FLAP_FORCE = -6;
