@@ -236,32 +236,114 @@ class Game {
         this.keys = {};
         this.currentLevel = 1;
         this.maxLevel = 5;
+        this.levelData = {}; // 存储每个关卡的布局数据
         this.setupEventListeners();
         this.setupLevel();
     }
 
     setupLevel() {
-        // 创建平台
-        this.platforms = [
-            new Platform(0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40)  // 地面
-        ];
-
-        // 根据关卡随机生成平台
-        const platformCount = 3 + Math.floor(Math.random() * 3); // 3-5个平台
-        for (let i = 0; i < platformCount; i++) {
-            const x = 100 + Math.random() * (WINDOW_WIDTH - 300);
-            const y = 150 + Math.random() * (WINDOW_HEIGHT - 250);
-            this.platforms.push(new Platform(x, y, 200, 20));
+        // 如果当前关卡的数据已存在，则使用已存储的数据
+        if (this.levelData[this.currentLevel]) {
+            this.platforms = this.levelData[this.currentLevel].platforms;
+            this.enemies = this.levelData[this.currentLevel].enemies;
+            return;
         }
 
-        // 根据关卡数创建敌人
+        // 预设每个关卡的平台布局
+        const levelPlatforms = {
+            1: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 400, 200, 20],
+                [400, 300, 200, 20],
+                [200, 200, 200, 20]
+            ],
+            2: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 150, 20],
+                [350, 350, 150, 20],
+                [600, 250, 150, 20],
+                [300, 150, 150, 20]
+            ],
+            3: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 120, 20],
+                [250, 400, 120, 20],
+                [450, 350, 120, 20],
+                [650, 300, 120, 20],
+                [450, 200, 120, 20]
+            ],
+            4: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [100, 450, 100, 20],
+                [300, 400, 100, 20],
+                [500, 350, 100, 20],
+                [300, 250, 100, 20],
+                [100, 150, 100, 20],
+                [500, 150, 100, 20]
+            ],
+            5: [
+                [0, WINDOW_HEIGHT - 40, WINDOW_WIDTH, 40],  // 地面
+                [50, 450, 80, 20],
+                [200, 400, 80, 20],
+                [350, 350, 80, 20],
+                [500, 300, 80, 20],
+                [650, 250, 80, 20],
+                [500, 150, 80, 20],
+                [350, 200, 80, 20]
+            ]
+        };
+
+        // 预设每个关卡的敌人位置
+        const levelEnemies = {
+            1: [
+                [300, WINDOW_HEIGHT - 70, 1],
+                [500, WINDOW_HEIGHT - 70, 1]
+            ],
+            2: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 1],
+                [600, WINDOW_HEIGHT - 70, 2]
+            ],
+            3: [
+                [150, WINDOW_HEIGHT - 70, 1],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 280, 1]
+            ],
+            4: [
+                [200, WINDOW_HEIGHT - 70, 1],
+                [400, WINDOW_HEIGHT - 70, 2],
+                [600, WINDOW_HEIGHT - 70, 2],
+                [300, 230, 1],
+                [500, 130, 2]
+            ],
+            5: [
+                [150, WINDOW_HEIGHT - 70, 2],
+                [350, WINDOW_HEIGHT - 70, 2],
+                [550, WINDOW_HEIGHT - 70, 2],
+                [650, 230, 1],
+                [450, 180, 2],
+                [250, 380, 1]
+            ]
+        };
+
+        // 创建当前关卡的平台
+        this.platforms = [];
+        levelPlatforms[this.currentLevel].forEach(([x, y, width, height]) => {
+            this.platforms.push(new Platform(x, y, width, height));
+        });
+
+        // 创建当前关卡的敌人
         this.enemies = [];
-        const enemyCount = this.currentLevel + 1; // 第n关有n+1个敌人
-        for (let i = 0; i < enemyCount; i++) {
-            const x = 200 + Math.random() * (WINDOW_WIDTH - 400);
-            const y = WINDOW_HEIGHT - 70;
-            this.enemies.push(new Enemy(x, y));
-        }
+        levelEnemies[this.currentLevel].forEach(([x, y, type]) => {
+            this.enemies.push(new Enemy(x, y, type));
+        });
+
+        // 存储当前关卡的布局数据
+        this.levelData[this.currentLevel] = {
+            platforms: this.platforms,
+            enemies: [...this.enemies]
+        };
     }
 
     setupEventListeners() {
@@ -293,6 +375,18 @@ class Game {
         
         // 显示游戏画布
         this.canvas.style.display = 'block';
+        
+        // 重置游戏状态
+        this.currentLevel = 1;
+        this.levelData = {};
+        this.setupLevel();
+        
+        // 重置玩家位置和状态
+        this.player.x = 100;
+        this.player.y = WINDOW_HEIGHT - 100;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        this.player.jumping = false;
         
         // 开始游戏循环
         this.gameLoop();
@@ -350,14 +444,27 @@ class Game {
     }
 
     gameOver() {
-        alert('游戏结束！重新开始第' + this.currentLevel + '关');
-        this.setupLevel(); // 重置当前关卡
-        // 重置玩家位置和状态
-        this.player.x = 100;
-        this.player.y = WINDOW_HEIGHT - 100;
-        this.player.velocityX = 0;
-        this.player.velocityY = 0;
-        this.player.jumping = false;
+        if (confirm(`第${this.currentLevel}关挑战失败！是否重新挑战？`)) {
+            // 重置当前关卡，保持布局不变
+            this.enemies = [...this.levelData[this.currentLevel].enemies];
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        } else {
+            // 返回第一关
+            this.currentLevel = 1;
+            this.levelData = {}; // 清空关卡数据
+            this.setupLevel();
+            // 重置玩家位置和状态
+            this.player.x = 100;
+            this.player.y = WINDOW_HEIGHT - 100;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.player.jumping = false;
+        }
     }
 
     levelComplete() {
