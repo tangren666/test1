@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Bird</title>
     <style>
         body {
@@ -13,6 +13,7 @@
             min-height: 100vh;
             background-color: #87CEEB;
             touch-action: manipulation;
+            position: relative;
         }
         #gameCanvas {
             border: 2px solid #000;
@@ -23,15 +24,33 @@
         @media (max-width: 800px) {
             #gameCanvas {
                 width: 100%;
-                height: 100vh;
-                max-height: 80vh;
+                height: auto;
+                max-height: 90vh;
                 object-fit: contain;
+            }
+            body {
+                padding: 10px;
+                box-sizing: border-box;
+            }
+        }
+        
+        /* 针对iPhone 11 Pro Max等设备的优化 */
+        @media only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3),
+               only screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) {
+            #gameCanvas {
+                width: 100%;
+                height: auto;
+                max-height: 85vh;
             }
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="startScreen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 1;">
+        <h1 style="color: purple; font-weight: bold; font-size: 48px; margin-bottom: 30px;">Flappy 婧婧</h1>
+        <button id="startButton" style="padding: 15px 30px; font-size: 24px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">开始游戏</button>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600" style="display: none;"></canvas>
     <script src="flappy_bird.js"></script>
     <script>
         // 初始化游戏

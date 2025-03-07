@@ -156,6 +156,14 @@ class FlappyBirdGame {
         this.lastTime = 0;
         this.scoreAnimations = []; // 存储得分动画
 
+        // 绑定开始按钮事件
+        const startButton = document.getElementById('startButton');
+        startButton.addEventListener('click', () => {
+            document.getElementById('startScreen').style.display = 'none';
+            this.canvas.style.display = 'block';
+            this.startGame();
+        });
+
         this.bindEvents();
     }
 
