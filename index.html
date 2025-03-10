@@ -34,6 +34,9 @@
     <script src="game.js"></script>
     <script>
         document.getElementById('flappyButton').addEventListener('click', function() {
+            // 清除所有游戏相关的缓存
+            localStorage.clear();
+            sessionStorage.clear();
             window.location.href = 'flappy_bird.html';
         });
     </script>

@@ -211,15 +211,22 @@ class FlappyBirdGame {
         this.bird = new Bird();
         this.pipes = [];
         this.score = 0;
-        this.gameState = 'waiting';
+        this.gameState = 'start';
         this.lastPipeSpawn = 0;
-        this.pipeSpawnInterval = 3825; // 增加70%的管道生成间隔
+        this.pipeSpawnInterval = 3825;
         this.lastFrameTime = 0;
         this.particles = [];
+        this.clickCount = 0;
         this.scoreMessage = {
             show: false,
             timer: 0
         };
+        this.stars = [];
+        this.lastStarSpawn = 0;
+        this.starSpawnInterval = 1000;
+        this.scoreAnimations = [];
+        this.baseSpawnInterval = 3825;
+        this.lastTime = performance.now();
         this.setupEventListeners();
     }
 
@@ -240,14 +247,16 @@ class FlappyBirdGame {
         this.bird = new Bird();
         this.pipes = [];
         this.score = 0;
-        this.clickCount = 0;
         this.lastPipeSpawn = 0;
-        this.lastTime = 0;
-        this.scoreMessage.show = false;
-        this.scoreMessage.timer = 0;
-        this.scoreAnimations = [];
+        this.particles = [];
+        this.clickCount = 0;
         this.stars = [];
         this.lastStarSpawn = 0;
+        this.scoreMessage = {
+            show: false,
+            timer: 0
+        };
+        this.scoreAnimations = [];
     }
 
     update(deltaTime) {
@@ -413,10 +422,6 @@ class FlappyBirdGame {
 
         requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     }
-}
-
-// 导出游戏类
-window.FlappyBirdGame = FlappyBirdGame;
 
     setupEventListeners() {
         this.canvas.addEventListener('click', () => this.handleClick());
@@ -427,5 +432,5 @@ window.FlappyBirdGame = FlappyBirdGame;
     }
 }
 
-// 导出游戏类
+// 导出FlappyBirdGame类
 window.FlappyBirdGame = FlappyBirdGame;

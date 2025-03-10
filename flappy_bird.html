@@ -116,6 +116,9 @@
             
             // 添加开始按钮点击事件
             startButton.addEventListener('click', function() {
+                // 清除所有游戏相关的缓存
+                localStorage.clear();
+                sessionStorage.clear();
                 document.getElementById('startScreen').style.display = 'none';
                 canvas.style.display = 'block';
                 game.gameState = 'start';
