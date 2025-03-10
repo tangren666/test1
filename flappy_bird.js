@@ -214,11 +214,14 @@ class FlappyBirdGame {
         this.baseSpawnInterval = 2000;
         this.pipeSpawnInterval = this.baseSpawnInterval;
         this.lastTime = 0;
-        this.scoreAnimations = []; // 存储得分动画
+        this.scoreAnimations = [];
         this.scoreMessage = {
             show: false,
             timer: 0
         };
+        this.stars = []; // 存储背景星星
+        this.lastStarSpawn = 0;
+        this.starSpawnInterval = 500; // 每0.5秒生成一颗新星星
         this.canvas.addEventListener('click', this.handleClick.bind(this));
     }
 
@@ -245,20 +248,45 @@ class FlappyBirdGame {
         this.scoreMessage.show = false;
         this.scoreMessage.timer = 0;
         this.scoreAnimations = [];
+        this.stars = [];
+        this.lastStarSpawn = 0;
     }
 
     update(deltaTime) {
+        // 更新星星生成
+        this.lastStarSpawn += deltaTime;
+        if (this.lastStarSpawn > this.starSpawnInterval) {
+            this.stars.push({
+                x: Math.random() * CANVAS_WIDTH,
+                y: Math.random() * CANVAS_HEIGHT,
+                size: Math.random() * 2 + 1,
+                brightness: Math.random() * 0.5 + 0.5,
+                twinkleSpeed: Math.random() * 0.01 + 0.005,
+                twinklePhase: Math.random() * Math.PI * 2,
+                life: 1.0
+            });
+            this.lastStarSpawn = 0;
+        }
+
+        // 更新所有星星
+        for (let i = this.stars.length - 1; i >= 0; i--) {
+            const star = this.stars[i];
+            star.life -= deltaTime * 0.0003;
+            star.twinklePhase += star.twinkleSpeed * deltaTime;
+            if (star.life <= 0) {
+                this.stars.splice(i, 1);
+            }
+        }
+
         if (this.gameState !== 'playing') return;
 
         this.bird.update(deltaTime);
 
         this.lastPipeSpawn += deltaTime;
-        if (this.lastPipeSpawn > this.pipeSpawnInterval) {
+        if (this.lastPipeSpawn > this.baseSpawnInterval) {
             this.pipes.push(new Pipe(CANVAS_WIDTH));
             this.lastPipeSpawn = 0;
-            // 随机减少30%到90%的生成间隔
-            const reductionFactor = Math.random() * 0.6 + 0.1; // 0.1到0.7之间的随机数
-            this.pipeSpawnInterval = this.baseSpawnInterval * reductionFactor;
+            this.pipeSpawnInterval = this.baseSpawnInterval;
         }
 
         const timeCompensation = deltaTime / 16.67;
@@ -274,17 +302,15 @@ class FlappyBirdGame {
             if (!pipe.passed && pipe.x + pipe.width < this.bird.x) {
                 pipe.passed = true;
                 this.score++;
-                // 当分数大于3时显示提示
                 if (this.score > 3 && !this.scoreMessage.show) {
                     this.scoreMessage.show = true;
-                    this.scoreMessage.timer = 5000; // 5秒
+                    this.scoreMessage.timer = 5000;
                 }
-                // 添加得分动画
                 this.scoreAnimations.push({
                     x: pipe.x + pipe.width,
                     y: this.bird.y,
                     alpha: 1,
-                    life: 1000 // 动画持续1秒
+                    life: 1000
                 });
             }
 
@@ -293,7 +319,6 @@ class FlappyBirdGame {
             }
         }
 
-        // 更新提示计时器
         if (this.scoreMessage.show) {
             this.scoreMessage.timer -= deltaTime;
             if (this.scoreMessage.timer <= 0) {
@@ -301,12 +326,11 @@ class FlappyBirdGame {
             }
         }
 
-        // 更新得分动画
         for (let i = this.scoreAnimations.length - 1; i >= 0; i--) {
             const anim = this.scoreAnimations[i];
-            anim.y -= 1; // 向上移动
+            anim.y -= 1;
             anim.life -= deltaTime;
-            anim.alpha = Math.max(0, anim.life / 1000); // 逐渐变透明
+            anim.alpha = Math.max(0, anim.life / 1000);
 
             if (anim.life <= 0) {
                 this.scoreAnimations.splice(i, 1);
@@ -319,13 +343,23 @@ class FlappyBirdGame {
     }
 
     draw() {
-        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillStyle = '#000033';
         this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // 绘制星星
+        for (const star of this.stars) {
+            this.ctx.save();
+            const brightness = star.brightness * (0.7 + 0.3 * Math.sin(star.twinklePhase));
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${brightness * star.life})`;
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        }
 
         this.pipes.forEach(pipe => pipe.draw(this.ctx));
         this.bird.draw(this.ctx);
 
-        // 绘制得分动画
         this.scoreAnimations.forEach(anim => {
             this.ctx.save();
             this.ctx.fillStyle = `rgba(255, 215, 0, ${anim.alpha})`;
@@ -334,7 +368,6 @@ class FlappyBirdGame {
             this.ctx.restore();
         });
 
-        // 绘制得分提示
         if (this.scoreMessage.show) {
             this.ctx.save();
             this.ctx.fillStyle = '#FFD700';
@@ -344,12 +377,11 @@ class FlappyBirdGame {
             this.ctx.restore();
         }
 
-        this.ctx.fillStyle = '#000';
+        this.ctx.fillStyle = '#fff';
         this.ctx.font = '24px Arial';
         this.ctx.fillText(`Score: ${this.score}`, 10, 30);
         this.ctx.fillText(`Clicks: ${this.clickCount}`, 10, 60);
 
-        // 绘制游戏状态提示
         if (this.gameState === 'start') {
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
