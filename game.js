@@ -27,9 +27,10 @@ class Player extends GameObject {
         this.velocityX = 0;
         this.jumping = false;
         this.crouching = false;
-        this.speed = 3.5; // 原速度5减少30%
+        this.speed = 3.5;
         this.gravity = 0.8;
         this.jumpForce = -15;
+        this.particles = [];
         
         // 加载玩家图片
         this.image = new Image();
@@ -73,6 +74,18 @@ class Player extends GameObject {
     }
 
     draw(ctx) {
+        // 绘制粒子效果
+        ctx.save();
+        for (const particle of this.particles) {
+            ctx.beginPath();
+            ctx.fillStyle = particle.color;
+            ctx.globalAlpha = particle.life;
+            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // 绘制玩家
         console.log('Drawing player, image loaded:', this.image.complete, 'image src:', this.image.src);
         if (this.image.complete) {
             try {
@@ -97,6 +110,27 @@ class Player extends GameObject {
 
         // 水平移动
         this.x += this.velocityX;
+
+        // 当玩家移动时产生星星粒子
+        if (Math.abs(this.velocityX) > 0) {
+            this.particles.push({
+                x: this.x + Math.random() * this.width,
+                y: this.y + Math.random() * this.height,
+                size: Math.random() * 2 + 1,
+                life: 1.0,
+                color: `hsl(${Math.random() * 60 + 40}, 100%, 70%)`
+            });
+        }
+
+        // 更新所有粒子
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const particle = this.particles[i];
+            particle.life -= 0.02;
+            particle.y -= 0.5;
+            if (particle.life <= 0) {
+                this.particles.splice(i, 1);
+            }
+        }
 
         // 碰撞检测
         this.checkCollisions(platforms);
@@ -256,6 +290,8 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // 清除所有游戏相关的缓存
+        localStorage.clear();
         this.player = new Player();
         this.platforms = [];
         this.enemies = [];
@@ -541,6 +577,8 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // 清除所有游戏相关的缓存
+        localStorage.clear();
         this.player = new Player();
         this.platforms = [];
         this.enemies = [];
@@ -825,6 +863,8 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // 清除所有游戏相关的缓存
+        localStorage.clear();
         this.player = new Player();
         this.platforms = [];
         this.enemies = [];
@@ -1109,6 +1149,8 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // 清除所有游戏相关的缓存
+        localStorage.clear();
         this.player = new Player();
         this.platforms = [];
         this.enemies = [];
@@ -1393,6 +1435,8 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // 清除所有游戏相关的缓存
+        localStorage.clear();
         this.player = new Player();
         this.platforms = [];
         this.enemies = [];
@@ -1677,6 +1721,8 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // 清除所有游戏相关的缓存
+        localStorage.clear();
         this.player = new Player();
         this.platforms = [];
         this.enemies = [];

@@ -1,13 +1,13 @@
 // 游戏常量
-const CANVAS_WIDTH = 1792;
-const CANVAS_HEIGHT = 828;
-const BIRD_WIDTH = 48;
-const BIRD_HEIGHT = 36;
-const PIPE_WIDTH = 72;
-const PIPE_GAP = 200;
-const GRAVITY = 0.25;
-const FLAP_FORCE = -6;
-const PIPE_SPEED = 2;
+const CANVAS_WIDTH = 792;
+const CANVAS_HEIGHT = 1828;
+const BIRD_WIDTH = 40;
+const BIRD_HEIGHT = 30;
+const PIPE_WIDTH = 60;
+const PIPE_GAP = 250;
+const GRAVITY = 0.175; // 原值0.25减少30%
+const FLAP_FORCE = -4.2; // 原值-6减少30%
+const PIPE_SPEED = 1.4;
 
 // 小鸟类
 class Bird {
@@ -18,6 +18,7 @@ class Bird {
         this.height = BIRD_HEIGHT;
         this.velocity = 0;
         this.rotation = 0;
+        this.particles = [];
         
         // 加载小鸟图片
         this.image = new Image();
@@ -50,9 +51,42 @@ class Bird {
             this.y = CANVAS_HEIGHT - this.height;
             this.velocity = 0;
         }
+
+        // 添加新的尾迹粒子
+        if (this.velocity < 0) { // 只在上升时产生尾迹
+            this.particles.push({
+                x: this.x + this.width / 2,
+                y: this.y + this.height / 2,
+                size: Math.random() * 3 + 2,
+                life: 1.0,
+                color: `hsl(${Math.random() * 60 + 40}, 100%, 70%)`
+            });
+        }
+
+        // 更新所有粒子
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const particle = this.particles[i];
+            particle.life -= deltaTime * 0.001;
+            particle.x -= 2;
+            if (particle.life <= 0) {
+                this.particles.splice(i, 1);
+            }
+        }
     }
 
     draw(ctx) {
+        // 绘制尾迹粒子
+        ctx.save();
+        for (const particle of this.particles) {
+            ctx.beginPath();
+            ctx.fillStyle = particle.color;
+            ctx.globalAlpha = particle.life;
+            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // 绘制小鸟
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         ctx.rotate(this.rotation);
@@ -99,12 +133,37 @@ class Pipe {
     }
 
     draw(ctx) {
+        // 创建上管道的渐变
+        const topGradient = ctx.createLinearGradient(this.x, 0, this.x + this.width, 0);
+        topGradient.addColorStop(0, '#FF69B4');
+        topGradient.addColorStop(0.5, '#FFC0CB');
+        topGradient.addColorStop(1, '#FF69B4');
+
+        // 创建下管道的渐变
+        const bottomGradient = ctx.createLinearGradient(this.x, this.bottomY, this.x + this.width, this.bottomY);
+        bottomGradient.addColorStop(0, '#FF69B4');
+        bottomGradient.addColorStop(0.5, '#FFC0CB');
+        bottomGradient.addColorStop(1, '#FF69B4');
+
+        ctx.save();
+
         // 绘制上管道
-        ctx.fillStyle = '#FFC0CB';
-        ctx.fillRect(this.x, 0, this.width, this.topHeight);
+        ctx.fillStyle = topGradient;
+        ctx.strokeStyle = '#FF1493';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(this.x, 0, this.width, this.topHeight, [0, 0, 8, 8]);
+        ctx.fill();
+        ctx.stroke();
 
         // 绘制下管道
-        ctx.fillRect(this.x, this.bottomY, this.width, this.bottomHeight);
+        ctx.fillStyle = bottomGradient;
+        ctx.beginPath();
+        ctx.roundRect(this.x, this.bottomY, this.width, this.bottomHeight, [8, 8, 0, 0]);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
     }
 
     isOffscreen() {
@@ -152,7 +211,8 @@ class FlappyBirdGame {
         this.clickCount = 0;
         this.gameState = 'start';
         this.lastPipeSpawn = 0;
-        this.pipeSpawnInterval = 2000;
+        this.baseSpawnInterval = 2000;
+        this.pipeSpawnInterval = this.baseSpawnInterval;
         this.lastTime = 0;
         this.scoreAnimations = []; // 存储得分动画
         this.scoreMessage = {
@@ -196,6 +256,9 @@ class FlappyBirdGame {
         if (this.lastPipeSpawn > this.pipeSpawnInterval) {
             this.pipes.push(new Pipe(CANVAS_WIDTH));
             this.lastPipeSpawn = 0;
+            // 随机减少30%到90%的生成间隔
+            const reductionFactor = Math.random() * 0.6 + 0.1; // 0.1到0.7之间的随机数
+            this.pipeSpawnInterval = this.baseSpawnInterval * reductionFactor;
         }
 
         const timeCompensation = deltaTime / 16.67;
@@ -277,7 +340,7 @@ class FlappyBirdGame {
             this.ctx.fillStyle = '#FFD700';
             this.ctx.font = 'bold 36px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('太棒了，小婧婧', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 100);
+            this.ctx.fillText('太棒了！', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 100);
             this.ctx.restore();
         }
 
