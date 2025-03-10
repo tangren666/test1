@@ -417,3 +417,15 @@ class FlappyBirdGame {
 
 // 导出游戏类
 window.FlappyBirdGame = FlappyBirdGame;
+
+    setupEventListeners() {
+        this.canvas.addEventListener('click', () => this.handleClick());
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.handleClick();
+        });
+    }
+}
+
+// 导出游戏类
+window.FlappyBirdGame = FlappyBirdGame;
