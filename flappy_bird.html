@@ -118,8 +118,8 @@
             startButton.addEventListener('click', function() {
                 document.getElementById('startScreen').style.display = 'none';
                 canvas.style.display = 'block';
-                game.gameState = 'playing';
-                game.gameLoop(performance.now());
+                game.gameState = 'start';
+                game.handleClick();
             });
             
             // 调整画布大小以适应屏幕
