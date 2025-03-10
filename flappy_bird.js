@@ -1,12 +1,12 @@
 // 游戏常量
 const CANVAS_WIDTH = 792;
 const CANVAS_HEIGHT = 1828;
-const BIRD_WIDTH = 40;
-const BIRD_HEIGHT = 30;
+const BIRD_WIDTH = 90;
+const BIRD_HEIGHT = 67.5;
 const PIPE_WIDTH = 60;
 const PIPE_GAP = 250;
-const GRAVITY = 0.175; // 原值0.25减少30%
-const FLAP_FORCE = -4.2; // 原值-6减少30%
+const GRAVITY = 0.175;
+const FLAP_FORCE = -4.2;
 const PIPE_SPEED = 1.4;
 
 // 小鸟类
@@ -121,7 +121,10 @@ class Pipe {
     constructor(x) {
         this.x = x;
         this.width = PIPE_WIDTH;
-        this.gapY = Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 200) + 100;
+        // 限制通道在画布中间区域，上下浮动范围为画布高度的30%
+        const middleY = CANVAS_HEIGHT / 2;
+        const fluctuationRange = CANVAS_HEIGHT * 0.3;
+        this.gapY = middleY - fluctuationRange/2 + Math.random() * fluctuationRange;
         this.topHeight = this.gapY;
         this.bottomY = this.gapY + PIPE_GAP;
         this.bottomHeight = CANVAS_HEIGHT - this.bottomY;
@@ -208,21 +211,12 @@ class FlappyBirdGame {
         this.bird = new Bird();
         this.pipes = [];
         this.score = 0;
-        this.clickCount = 0;
-        this.gameState = 'start';
+        this.gameState = 'waiting';
         this.lastPipeSpawn = 0;
-        this.baseSpawnInterval = 2000;
-        this.pipeSpawnInterval = this.baseSpawnInterval;
-        this.lastTime = 0;
-        this.scoreAnimations = [];
-        this.scoreMessage = {
-            show: false,
-            timer: 0
-        };
-        this.stars = []; // 存储背景星星
-        this.lastStarSpawn = 0;
-        this.starSpawnInterval = 500; // 每0.5秒生成一颗新星星
-        this.canvas.addEventListener('click', this.handleClick.bind(this));
+        this.pipeSpawnInterval = 2250; // 增加50%的管道生成间隔
+        this.lastFrameTime = 0;
+        this.particles = [];
+        this.setupEventListeners();
     }
 
     handleClick() {
