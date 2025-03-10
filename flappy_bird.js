@@ -216,6 +216,10 @@ class FlappyBirdGame {
         this.pipeSpawnInterval = 3825; // 增加70%的管道生成间隔
         this.lastFrameTime = 0;
         this.particles = [];
+        this.scoreMessage = {
+            show: false,
+            timer: 0
+        };
         this.setupEventListeners();
     }
 
